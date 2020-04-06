@@ -2,7 +2,7 @@
 
 Hansel is a **privacy preserving**, **open source**, **contact tracing** application created to slow the spread of COVID-19.
 
-If you want to get started developing, jumpt to [Getting Started](#getting-started)
+If you want to get started developing, jump to [Getting Started](#getting-started)
 ![Hansel Screenshot](docs/Hansel_screenshot.png)
 
 ## What is contact tracing and why is it helpful?
