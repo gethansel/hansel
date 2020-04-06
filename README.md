@@ -1,80 +1,35 @@
-# Overview
+# What is Hansel?
 
-As the first wave of this epidemic resolves, people throughout the world will want to get back to their normal lives. The policies that have helped stem the spread of the virus will be relaxed and life will resume. In many countries the virus will not have been completely eradicated and travel combined with asymptomatic carriers will likely reinfect every country across the globe. For this second round, every country can adopt the contact tracing and testing policies that were so successful in Hong Kong and South Korea. Covid Tracer is an independent, non-profit, voluntary contact tracing tool to enable any citizen to be alerted of likely covid exposure. By alerting specific individuals of likely exposure we can slow the spread of the virus, reduce the burden on our healthcare system, avoid another lockdown and, most importantly, save lives.
+Hansel is a **privacy preserving**, **open source**, **contact tracing** application created to slow the spread of COVID-19.
 
+If you want to get started developing, jumpt to [Getting Started](#getting-started)
+![Hansel Screenshot](docs/Hansel_screenshot.png)
 
-# Goals
+## What is contact tracing and why is it helpful?
+Contact tracing slows the spread of a virus by alerting people (contacts) to likely exposures. Those contacts can then alter their behavior (through testing and self-quarantining) to reduce the likelihood they infect others.
 
-1. Create a scalable multi-platform app to alert people of likely covid exposure.
-2. Distribute that app to as many people as possible.
+## How do you preserve privacy while contact tracing?
+Your location data never leaves your phone, and we never know your name. The app uploads a [hash](https://en.wikipedia.org/wiki/Cryptographic_hash_function) of where you were and at what time, which lets us match you to other people that have crossed your path. When someone self-reports a COVID-19 diagnosis we alert any other users with matching location hashes. Only those users can see the locations where they've been exposed and can decide to get tested or self-quarantine.
 
+## What about other contact tracing apps?
+Hansel's goal is to bring privacy preserving contact tracing to as many communities as possible. Our privacy preserving algorithm is open sourced and we are happy to integrate with any other apps. If another app takes hold that retains our users' privacy, we'll direct our users to adopt that app.
 
-# Specifications
+## How do we know you aren't using our data for other purposes?
+The source code for the app and backend services are open source for all to see and the app is run by a non-profit. If there's any code that is concerning, please reach out.
 
-Covid Tracer has two key components, an App and Backend:
+## What if a government seizes Hansel's data?
+Hansel only stores a hash of your location, it cannot be reverse engineered. Even if we wanted to provide a government with a specific user's location, we couldn't. We couldn't even tell them who uses the app.
 
+## What about fraudulent reports?
+We will initially review all reports by hand. As we have more data, we'll be able to determine the likelihood that a report is fraudulent. In those cases we will request further confirmation.
 
-## App
+## Why Hansel?
+Hansel and Gretel is a classic German fairy tale. Hansel (the protagonist) uses pebbles as a way of ensuring he and his sister stay safe while walking in the forest. Hansel (the app) tracks location in a similarly anonymous way to keep you and your community safe from COVID-19.
 
-The app will be distributed initially through Apple’s App Store, to be followed by Google Play (using Flutter to produce both apps). The app has three key functions:
-
-
-### Setup + Tracking
-
-Covid Tracer setup will require nothing other than installing and launching the application. User Ids will be automatically generated, and no additional user data will be collected. Once the app is launched we will use the  “`startMonitoringVisits()`” functionality of iOS to track locations of users regardless of the application state. These “visit” events will include latitude, longitude and floor as well as start and end time of the visit. Each event will be stored locally on the device. Periodically (but at least once per day and no more than 3x), these events will be converted into a parquet file and posted to a specified endpoint (AWS Gateway API) to be stored in S3.  If converting to a parquet file is difficult, this can be done in the AWS Lambda function outlined in the backed portion.
-
-
-### Reporting Covid-19 Diagnosis
-
-The app will have a single button to report covid exposure. Tapping that button will remind the user to be truthful and prompt the user to upload photo proof of their diagnosis or, if they do not have proof, provide us with a method to contact them (phone and email). The claimed diagnosis will be posted to a specified endpoint to be processed.
-
-
-### Receiving Alert and Exposure Page
-
-When our backend confirms a diagnosis, it will run a query to determine all other users who likely have had exposure. It will then need to alert each user to the locations and times of each possible exposure. A push message will be sent to the user alerting them of the exposure and a new page will be available within the app. The page will show a map with locations of possible exposure outlined in blue. Tapping on any location will bring up the days and times the person might have been exposed.  
-
-
-## Backend
-
-The backend will power the various features of the App. 
-
-
-### Data Store
-
-All location data will be stored in S3 in parquet format and stored in directories by user_id. User data (user_id + push data) and the diagnosis tables will be stored in AWS Aurora Postgres DB. 
-
-
-### Lambda
-
-All backend functionality will be written as lambda functions in python.
-
-
-### API Gateway
-
-All App communications will be mediated by AWS API Gateway. The following APIs are part of the MVP:
-
-1. createUser(push token Apple, push token generic): returns user_id
-2. Save_location(user_id, location parquet or csv): returns success
-3. Report_diagnosis(user_id, photo, phone, email): returns success
-4. View_uncofirmed_diagnoses(): returns list of unconfirmed diagnosis
-5. Confirm_diagnosis(diagnosis): updates diagnosis and kicks off Generate_exposed(user_id) 
-6. Generate_exposed(user_id): kicks off Push_alert for all user_ids
-7. Receive_alert_details(user_id): returns list of locations and times of exposure for given user_id
-8. Push_alert(user_ids): Push alert to all user_ids
-
-
-# Milestones
-
-
-
-1. Simple PoC - iOS only
-
-    Fully functional App so we can validate it works
-
-2. iOS App Store Availability
-3. Android
 
 # Getting Started
+
+Thank you for your interest in helping spread contact tracing. Our primary goal is to enable contact tracing for as many communities as possible. The repo here requires a few services and integrations with corresponding config, if you are interested in helping, please reach out to one of the existing contributors and we can get you setup. 
 
 ## Flutter
 
