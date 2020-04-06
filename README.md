@@ -29,7 +29,7 @@ Hansel and Gretel is a classic German fairy tale. Hansel (the protagonist) uses 
 
 # Getting Started
 
-Thank you for your interest in helping spread contact tracing. Our primary goal is to enable contact tracing for as many communities as possible. The repo here requires a few services and integrations with corresponding config, if you are interested in helping, please reach out to one of the existing contributors and we can get you setup. 
+Thank you for your interest in helping stop the spread of COVID-19. Our primary goal is to enable contact tracing for as many communities as possible. This project requires a few services and integrations with corresponding config, if you are interested in helping, please reach out to one of the existing contributors and we can get you setup. 
 
 ## Flutter
 
