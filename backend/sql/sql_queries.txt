@@ -1,0 +1,20 @@
+CREATE TABLE public.users (
+	user_id bigint NOT NULL GENERATED ALWAYS AS IDENTITY,
+	device_apn_token varchar NULL,
+	device_registration_token varchar NULL
+);
+CREATE UNIQUE INDEX users_user_id_idx ON public.users (user_id);
+ALTER TABLE public.users ADD CONSTRAINT users_un UNIQUE (user_id);
+
+
+CREATE TABLE public.reported_cases (
+	user_id bigint NOT NULL,
+	date_reported timestamp NOT NULL,
+	verified bool NULL,
+	picture_url varchar NULL,
+	phone varchar NULL,
+	email varchar NULL,
+	reviewed_on timestamp NULL
+);
+ALTER TABLE public.reported_cases ADD CONSTRAINT reported_cases_fk FOREIGN KEY (user_id) REFERENCES public.users(user_id);
+
