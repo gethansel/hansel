@@ -32,6 +32,8 @@
 	<string>In order to alert you to possible COVID-19 exposure, we need to access your location. We remove your location data from our servers after 4 weeks.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>In order to alert you to possible COVID-19 exposure, we need to access your location. We remove your location data from our servers after 4 weeks.</string>
+	<key>io.flutter.embedded_views_preview</key>
+    <true/>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>fetch</string>
