@@ -9,15 +9,16 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:location_permissions/location_permissions.dart';
 import 'package:covid_tracker/screens/reportCovidScreen.dart';
 import 'package:covid_tracker/screens/intro_screens.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:flutter_google_maps/flutter_google_maps.dart';
+
+GlobalKey<GoogleMapStateBase> _key = GlobalKey<GoogleMapStateBase>();
 
 class HomeScreen extends StatefulWidget {
   static Route<dynamic> route() {
     return FadeRoute(page: HomeScreen());
   }
-
   HomeScreen({Key key}) : super(key: key);
-
+  
   @override
   _HomeScreenState createState() => _HomeScreenState();
 }
@@ -30,14 +31,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   PermissionStatus _permission = PermissionStatus.unknown;
   AppLifecycleState _currentAppstate = AppLifecycleState.resumed;
-
-  GoogleMapController mapController;
-
-  final LatLng _center = const LatLng(45.521563, -122.677433);
-
-  void _onMapCreated(GoogleMapController controller) {
-    mapController = controller;
-  }
 
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
@@ -176,13 +169,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             SizedBox(height: 20),
           ],
           GoogleMap(
-            onMapCreated: _onMapCreated,
-            myLocationButtonEnabled: false,
-            initialCameraPosition: CameraPosition(
-              target: _center,
-              zoom: 11.0,
-            ),
-          ),
+              key: _key,
+              mobilePreferences: MobileMapPreferences(myLocationEnabled: true, myLocationButtonEnabled: true),
+          ), 
           Positioned(
             top: 10,
             left: 10,

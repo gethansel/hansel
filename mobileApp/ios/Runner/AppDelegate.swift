@@ -25,7 +25,7 @@ private func registerPlugins(registry: FlutterPluginRegistry) {
     }
     GeneratedPluginRegistrant.register(with: self)
     //app.rekab/locator_plugin
-    GMSServices.provideAPIKey("<MAPS API KEY>")
+    GMSServices.provideAPIKey("<GOOGLE_MAP_API>")
     BackgroundLocatorPlugin.setPluginRegistrantCallback(registerPlugins)
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
