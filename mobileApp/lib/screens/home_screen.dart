@@ -10,6 +10,7 @@ import 'package:location_permissions/location_permissions.dart';
 import 'package:covid_tracker/screens/reportCovidScreen.dart';
 import 'package:covid_tracker/screens/intro_screens.dart';
 import 'package:flutter_google_maps/flutter_google_maps.dart';
+import 'package:flutter/services.dart' show rootBundle;
 
 GlobalKey<GoogleMapStateBase> _key = GlobalKey<GoogleMapStateBase>();
 
@@ -17,8 +18,9 @@ class HomeScreen extends StatefulWidget {
   static Route<dynamic> route() {
     return FadeRoute(page: HomeScreen());
   }
+
   HomeScreen({Key key}) : super(key: key);
-  
+
   @override
   _HomeScreenState createState() => _HomeScreenState();
 }
@@ -29,6 +31,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   final LocationService _locationService = LocationService();
   final UserService _userService = locator<UserService>();
 
+  String _mapsStyle;
   PermissionStatus _permission = PermissionStatus.unknown;
   AppLifecycleState _currentAppstate = AppLifecycleState.resumed;
 
@@ -40,6 +43,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+
+    rootBundle.loadString('assets/styles/maps.json').then((string) {
+      _mapsStyle = string;
+    });
 
     WidgetsBinding.instance.addObserver(this);
     Future.delayed(
@@ -166,9 +173,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             SizedBox(height: 20),
           ],
           GoogleMap(
-              key: _key,
-              mobilePreferences: MobileMapPreferences(myLocationEnabled: true, myLocationButtonEnabled: true),
-          ), 
+            key: _key,
+            mapStyle: _mapsStyle,
+            mobilePreferences: MobileMapPreferences(
+                myLocationEnabled: true,
+                myLocationButtonEnabled: true,
+                padding: EdgeInsets.only(bottom: 40)),
+          ),
           Positioned(
             top: 10,
             left: 10,
@@ -228,36 +239,41 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   // start the listener service and raise the permissions alert workflow if needed. If we are tracing,
                   // This should say stop tracing and tapping would stop the locaiton listener service.
                   child: StreamBuilder(
-                    initialData: false,
-                    stream: _locationService.stateStream,
-                    builder: (context, snapshot) {
-                      bool isTracing = snapshot.data;
-                      Color textColor = isTracing ? Colors.grey : Colors.white;
-                      return RaisedButton(
-                          onPressed: () {
-                            if (isTracing) {
-                              _locationService.stopLocator();
-                            } else {
-                              _checkLocationPermission();
-                            }
-                          },
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10.0),
-                              side: BorderSide(color: textColor)),
-                          textColor: textColor,
-                          color: isTracing ? Colors.white : Colors.green,
-                          padding: const EdgeInsets.all(5),
-                          elevation: 5,
-                          child: Column(
-                            children: <Widget>[
-                              Icon(isTracing ? Icons.gps_off : Icons.gps_fixed),
-                              Text(isTracing ? 'Stop Tracing' : 'Start Tracing',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(fontSize: 16)),
-                            ],
-                          ));
-                    }
-                  ),
+                      initialData: false,
+                      stream: _locationService.stateStream,
+                      builder: (context, snapshot) {
+                        bool isTracing = snapshot.data;
+                        Color textColor =
+                            isTracing ? Colors.grey : Colors.white;
+                        return RaisedButton(
+                            onPressed: () {
+                              if (isTracing) {
+                                _locationService.stopLocator();
+                              } else {
+                                _checkLocationPermission();
+                              }
+                            },
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10.0),
+                                side: BorderSide(color: textColor)),
+                            textColor: textColor,
+                            color: isTracing ? Colors.white : Colors.green,
+                            padding: const EdgeInsets.all(5),
+                            elevation: 5,
+                            child: Column(
+                              children: <Widget>[
+                                Icon(isTracing
+                                    ? Icons.gps_off
+                                    : Icons.gps_fixed),
+                                Text(
+                                    isTracing
+                                        ? 'Stop Tracing'
+                                        : 'Start Tracing',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(fontSize: 16)),
+                              ],
+                            ));
+                      }),
                 ),
               ]),
             ),
