@@ -71,7 +71,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
+  void didChangeAppLifecycleState(AppLifecycleState state) async {
     if (state == AppLifecycleState.resumed &&
         _currentAppstate != AppLifecycleState.resumed) {
       _checkLocationPermission();
@@ -90,18 +90,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         permissionLevel: LocationPermissionLevel.locationAlways,
       );
       if (_permission == PermissionStatus.granted) {
-        // _startLocator();
-        PermissionStatus status =
-            await _locationPermissions.checkPermissionStatus(
-                level: LocationPermissionLevel.locationAlways);
-        print('Start locator $_permission $status');
         _locationService.startLocator();
       } else {
+        _locationService.stopLocator();
         _alertLocationAccessNeeded();
       }
     } else if (_permission == PermissionStatus.granted) {
       _locationService.startLocator();
     } else {
+      _locationService.stopLocator();
       _alertLocationAccessNeeded();
     }
     setState(() {});
@@ -208,7 +205,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         );
                       },
                       shape: RoundedRectangleBorder(
-                          borderRadius: new BorderRadius.circular(10.0),
+                          borderRadius: BorderRadius.circular(10.0),
                           side: BorderSide(color: Colors.red)),
                       textColor: Colors.white,
                       color: Colors.red,
@@ -230,23 +227,37 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   // user has chosen to stop tracing, this should be green and say Start Tracing. Tapping would
                   // start the listener service and raise the permissions alert workflow if needed. If we are tracing,
                   // This should say stop tracing and tapping would stop the locaiton listener service.
-                  child: RaisedButton(
-                      onPressed: () {},
-                      shape: RoundedRectangleBorder(
-                          borderRadius: new BorderRadius.circular(10.0),
-                          side: BorderSide(color: Colors.grey)),
-                      textColor: Colors.grey,
-                      color: Colors.white,
-                      padding: EdgeInsets.all(5),
-                      elevation: 5,
-                      child: Column(
-                        children: <Widget>[
-                          Icon(Icons.gps_off),
-                          Text('Stop Tracing',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(fontSize: 16)),
-                        ],
-                      )),
+                  child: StreamBuilder(
+                    initialData: false,
+                    stream: _locationService.stateStream,
+                    builder: (context, snapshot) {
+                      bool isTracing = snapshot.data;
+                      Color textColor = isTracing ? Colors.grey : Colors.white;
+                      return RaisedButton(
+                          onPressed: () {
+                            if (isTracing) {
+                              _locationService.stopLocator();
+                            } else {
+                              _checkLocationPermission();
+                            }
+                          },
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10.0),
+                              side: BorderSide(color: textColor)),
+                          textColor: textColor,
+                          color: isTracing ? Colors.white : Colors.green,
+                          padding: const EdgeInsets.all(5),
+                          elevation: 5,
+                          child: Column(
+                            children: <Widget>[
+                              Icon(isTracing ? Icons.gps_off : Icons.gps_fixed),
+                              Text(isTracing ? 'Stop Tracing' : 'Start Tracing',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(fontSize: 16)),
+                            ],
+                          ));
+                    }
+                  ),
                 ),
               ]),
             ),

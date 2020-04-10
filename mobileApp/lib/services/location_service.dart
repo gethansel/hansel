@@ -1,16 +1,11 @@
-import 'dart:io';
+import 'dart:async';
 import 'dart:isolate';
-
-import 'dart:ui';
-
 import 'package:background_locator/background_locator.dart';
 import 'package:background_locator/location_dto.dart';
 import 'package:background_locator/location_settings.dart';
 import 'package:covid_tracker/model/location_event.dart';
 import 'package:covid_tracker/services/api_client.dart';
-import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
-import 'package:path_provider/path_provider.dart';
 
 class LocationService {
   final ReceivePort port = ReceivePort();
@@ -19,6 +14,8 @@ class LocationService {
   bool initialized = false;
   // static String _dbFilePath;
   static final _exposureTimeLimit = 60*0.1;
+  StreamController<bool> _stateStreamController = StreamController();
+  Stream get stateStream => _stateStreamController.stream;
 
   LocationService() {
     init();
@@ -44,8 +41,10 @@ class LocationService {
 
   Future<void> initPlatformState() async {
     await BackgroundLocator.initialize();
-    // isRunning = await BackgroundLocator.isRegisterLocationUpdate();
+    isRunning = await BackgroundLocator.isRegisterLocationUpdate();
+    _stateStreamController.sink.add(isRunning);
   }
+
 
   static void callback(LocationDto locationDto) async {
     saveLocation(locationDto);
@@ -133,5 +132,13 @@ class LocationService {
         autoStop: false,
       ),
     );
+    isRunning = true;
+    _stateStreamController.sink.add(isRunning);
+  }
+
+  void stopLocator() async {
+    await BackgroundLocator.unRegisterLocationUpdate();
+    isRunning = true;
+    _stateStreamController.sink.add(false);
   }
 }
