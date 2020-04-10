@@ -104,8 +104,9 @@ class LocationService {
     if (difference.inSeconds >= 30) {
       var payload = StringBuffer();
       box.values.where((l) => l.startTime.isAfter(syncDate) && l.endTime != null)
-      ..forEach((l) {
-        payload.writeln(l.toPayloadString());
+      ..forEach((l) async {
+        var payloadString = await l.toPayloadString();
+        payload.writeln(payloadString);
       });
       if (payload.isEmpty) {
         // There are no locations for upload.

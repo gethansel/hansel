@@ -1,3 +1,4 @@
+import 'package:encryptions/encryptions.dart';
 import 'package:hive/hive.dart';
 import 'dart:convert' show utf8;
 import 'package:crypto/crypto.dart';
@@ -28,16 +29,23 @@ class LocationEvent extends HiveObject {
     this.endTime
   });
 
-  String toPayloadString() {
+  Future<String> toPayloadString() async {
+  // String toPayloadString(){
     int precision = 4;
     String long = longitude.toStringAsFixed(precision);
     String lat = latitude.toStringAsFixed(precision);
     String alt = altitude.toStringAsFixed(precision);
 
+    var salt = utf8.encode('somelongrandomstring');
+
     var bytes = utf8.encode('$long$lat$alt');
 
-    var locationHash = md5.convert(bytes);
-    return '$key,$startTime,$endTime,$locationHash';
+    // var hash = md5.convert(bytes);
+    Argon2 argon2 = Argon2(iterations: 16, hashLength: 64, memory: 256, parallelism: 2);
+    var hash = await argon2.argon2i(bytes, salt);
+
+    print('$key,$startTime,$endTime,$hash');
+    return '$key,$startTime,$endTime,$hash';
   }
 
   @override
