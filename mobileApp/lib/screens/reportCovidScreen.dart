@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:covid_tracker/locator.dart';
+import 'package:covid_tracker/services/api_client.dart';
+import 'package:covid_tracker/services/local_storage_service.dart';
+
+const USER_ID_KEY = 'id';
 
 class ReportCovidDiagnosis extends StatelessWidget {
   @override
@@ -8,13 +13,12 @@ class ReportCovidDiagnosis extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         iconTheme: IconThemeData(color: Colors.grey),
-                title: Text(
+        title: Text(
           'Hansel',
           style: GoogleFonts.milonga(
               textStyle: TextStyle(fontSize: 40, color: Colors.green[700])),
         ),
         backgroundColor: Colors.white,
-
       ),
       body: ReportCovidForm(),
     );
@@ -40,6 +44,14 @@ class ReportCovidFormState extends State<ReportCovidForm> {
   final _formKey = GlobalKey<FormState>();
   final _textEditingControllerSymptoms = TextEditingController();
   final _textEditingControllerDiagnosis = TextEditingController();
+
+  final LocalStorageService _localStorageService =
+      locator<LocalStorageService>();
+  final ApiClient _apiClient = locator<ApiClient>();
+  String get userId =>
+      _localStorageService.settingsBox.get(USER_ID_KEY, defaultValue: null);
+
+  var _email, _phone;
 
   @override
   void initState() {
@@ -94,6 +106,32 @@ class ReportCovidFormState extends State<ReportCovidForm> {
     });
   }
 
+  void _submitCovidReport(DateTime reportDate,
+      {DateTime symptomsDate, String email, String phone}) async {
+    Map params = {
+      'date_reported': reportDate,
+    };
+    var userId = _localStorageService.settingsBox.get(USER_ID_KEY);
+    params['user_id'] = userId;
+    if (symptomsDate != null) {
+      params['date_symptoms'] = symptomsDate;
+    }
+    if (email != null) {
+      params['email'] = email;
+    }
+    if (phone != null) {
+      params['phone'] = phone;
+    }
+
+    try {
+      var data = await _apiClient.post('reportDiagnosis', {'content': 'empty'},
+          queryParameters: Map<String, dynamic>.from(params));
+      print(data);
+    } catch (e) {
+      print(e);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     // Build a Form widget using the _formKey created above.
@@ -144,6 +182,7 @@ class ReportCovidFormState extends State<ReportCovidForm> {
                 onSaved: (String value) {
                   // This optional block of code can be used to run
                   // code when the user saves the form.
+                  _email = value;
                 },
                 validator: (String value) {
                   return value.contains('@') ? 'Do not use the @ char.' : null;
@@ -159,6 +198,7 @@ class ReportCovidFormState extends State<ReportCovidForm> {
                 onSaved: (String value) {
                   // This optional block of code can be used to run
                   // code when the user saves the form.
+                  _phone = value;
                 },
                 validator: (String value) {
                   return value.contains('@') ? 'Do not use the @ char.' : null;
@@ -166,16 +206,20 @@ class ReportCovidFormState extends State<ReportCovidForm> {
               ),
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 16.0),
-                child: 
-                SizedBox(width: double.infinity,
-                          height: 50.0,
-                                  child: RaisedButton.icon(
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 50.0,
+                  child: RaisedButton.icon(
                     icon: Icon(Icons.local_pharmacy),
-                    onPressed: () {Navigator.pop(context);},
+                    onPressed: () {
+                      _submitCovidReport(_diagnosisDate,
+                          symptomsDate: _symptomStartDate,
+                          email: _email,
+                          phone: _phone);
+                      Navigator.pop(context);
+                    },
                     label: Text('Submit'),
                     color: Colors.redAccent,
-                    
-
                   ),
                 ),
               ),
