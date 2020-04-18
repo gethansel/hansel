@@ -1,5 +1,3 @@
-# This is a basic workflow to help you get started with Actions
-
 name: CI
 
 # Controls when the action will run. Triggers the workflow on push or pull request
@@ -52,13 +50,13 @@ jobs:
         with:
           flutter-version: '1.12.14'
           channel: 'dev'
+      - name: Run Flutter Driver tests
+        run: flutter run 
   drive_android:
     #if conditional to prevent a job from running
     if: github.event_name != 'pull_request'
     runs-on: macos-latest
-    #creates a build matrix for your jobs
     strategy:
-      #set of different configurations of the virtual environment.
       matrix:
         api-level: [21, 29]
         target: [default]
@@ -71,14 +69,13 @@ jobs:
           channel: 'dev'
       - name: Run Flutter Driver tests
         #GitHub Action for installing, configuring and running Android Emulators (work only Mac OS)
-        #https://github.com/ReactiveCircus/android-emulator-runner
         uses: reactivecircus/android-emulator-runner@v1
         with:
           api-level: ${{ matrix.api-level }}
           target: ${{ matrix.target }}
           arch: x86_64
           profile: Nexus 6
-          script: flutter drive --target=test_driver/app.dart
+          script: flutter run
 
 
 
