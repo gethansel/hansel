@@ -19,6 +19,9 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_driver:
+    sdk: flutter
+  test: any
   # background_locator: ^1.1.2+1
   background_locator:
     git:
