@@ -22,7 +22,7 @@ jobs:
           channel: 'dev' 
      - run: flutter pub get
      - run: flutter analyze
-     - run: flutter flutter test --coverage
+     - run: flutter test --coverage
   drive_ios:
     strategy:
       matrix:
