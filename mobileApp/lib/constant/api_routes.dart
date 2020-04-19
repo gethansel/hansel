@@ -3,4 +3,5 @@ class ApiRoutes {
   ApiRoutes._();
   static const createUser = 'createUser';
   static const updateLocation = 'updateLocation';
+  static const getContactLocations = 'getContactLocations';
 }

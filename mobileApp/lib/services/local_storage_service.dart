@@ -1,10 +1,13 @@
 import 'dart:io';
+import 'package:covid_tracker/model/exposure_event.dart';
 import 'package:hive/hive.dart';
 import 'package:path_provider/path_provider.dart';
 
 class LocalStorageService {
   Box _settingsBox;
   Box get settingsBox => _settingsBox;
+  Box _exposuresBox;
+  Box get exposuresBox => _exposuresBox;
 
   static LocalStorageService _instance;
 
@@ -20,10 +23,12 @@ class LocalStorageService {
     try {
       Directory dir = await getApplicationDocumentsDirectory();
       Hive.init('${dir.path}/db');
+      Hive.registerAdapter(ExposureEventAdapter());
       // Hive.registerAdapter(LocationEventAdapter());
     } on HiveError catch (e) {
       print('(WARNING) ${e.message}');
     }
     _settingsBox = await Hive.openBox('settings');
+    _exposuresBox = await Hive.openBox('exposures');
   }
 }

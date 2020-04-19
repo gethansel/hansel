@@ -1,4 +1,5 @@
 import 'package:covid_tracker/locator.dart';
+import 'package:covid_tracker/services/local_storage_service.dart';
 import 'package:covid_tracker/services/location_service.dart';
 import 'package:covid_tracker/services/user_service.dart';
 import 'package:covid_tracker/utils/fade_transition.dart';
@@ -6,11 +7,13 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:hive/hive.dart';
 import 'package:location_permissions/location_permissions.dart';
 import 'package:covid_tracker/screens/reportCovidScreen.dart';
 import 'package:covid_tracker/screens/intro_screens.dart';
 import 'package:flutter_google_maps/flutter_google_maps.dart';
 import 'package:flutter/services.dart' show rootBundle;
+import 'package:covid_tracker/services/exposure_service.dart';
 
 GlobalKey<GoogleMapStateBase> _key = GlobalKey<GoogleMapStateBase>();
 
@@ -29,6 +32,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   final FirebaseMessaging _firebaseMessaging = FirebaseMessaging();
   final LocationPermissions _locationPermissions = LocationPermissions();
   final LocationService _locationService = LocationService();
+  final ExposureService _exposureService = ExposureService();
+  final LocalStorageService _localStorageService = locator<LocalStorageService>();
   final UserService _userService = locator<UserService>();
 
   String _mapsStyle;
@@ -46,6 +51,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
     rootBundle.loadString('assets/styles/maps.json').then((string) {
       _mapsStyle = string;
+      setState(() {});
     });
 
     WidgetsBinding.instance.addObserver(this);
@@ -109,6 +115,36 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       _alertLocationAccessNeeded();
     }
     setState(() {});
+  }
+
+  void _addExposureMarkers() async {
+    // AARON NOTES
+    // Read markers from database
+    // I's want this to be called on startup, have bound it to the ListTile for easy debug.
+    // Opening a second box causes everything to break
+    // Box box = await Hive.openBox('locationBox');
+    var exposures =  _localStorageService.exposuresBox.keys;
+    exposures.forEach((exposure) async{
+      var exposureDetails = await _localStorageService.exposuresBox.get(exposure);
+      print(exposureDetails);
+      int recordId = exposureDetails.recordId;
+      print(recordId.toString());
+      // var locationDetails = await box.get(recordId);
+      // print(locationDetails);
+      // double lat = locationDetails.latitude;
+      // double lng = locationDetails.longitude;
+      // DateTime start = locationDetails.start;
+      // DateTime end = locationDetails.end;
+      bool dimissed = exposureDetails.dismissed;
+      // AARON NOTES
+      // color the marker according to the spec.
+      // GoogleMap.of(_key).addMarker(
+      //   // GeoCoord(lat, lng),
+      //   GeoCoord(lat, lng),
+      //   info: recordId.toString()
+      // );
+
+    });
   }
 
   Future<void> _alertLocationAccessNeeded() async {
@@ -189,11 +225,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: <Widget>[
-                  const ListTile(
+                  ListTile(
                     leading: Icon(Icons.home,
                         size: 50, color: Color.fromARGB(255, 56, 142, 60)),
                     title: Text('Local Guidance'),
                     subtitle: Text('Stay at home. Social Distance.'),
+                    onTap: (){_addExposureMarkers();},
                   ),
                 ],
               ),
@@ -209,6 +246,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 Expanded(
                   child: RaisedButton(
                       onPressed: () {
+                        // AARON NOTES
+                        // I've bound this to Report Case for easy debugging.
+                        // This should be called in the background on startup.
+                        _exposureService.getContactLocations();
                         Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -234,10 +275,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 ),
                 Padding(padding: EdgeInsets.all(10)),
                 Expanded(
-                  // This should switch between strat tracing and stop tracing. If we don't have permissions or the
-                  // user has chosen to stop tracing, this should be green and say Start Tracing. Tapping would
-                  // start the listener service and raise the permissions alert workflow if needed. If we are tracing,
-                  // This should say stop tracing and tapping would stop the locaiton listener service.
                   child: StreamBuilder(
                       initialData: false,
                       stream: _locationService.stateStream,

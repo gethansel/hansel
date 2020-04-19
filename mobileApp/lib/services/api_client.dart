@@ -7,7 +7,7 @@ const X_API_KEY = '<HANSEL_API_KEY>';
 
 final Dio dio = Dio()
   ..options.baseUrl = BASE_URL
-  ..options.connectTimeout = 5000
+  ..options.connectTimeout = 30000
   ..options.receiveTimeout
   ..options.headers = {
     'Content-Type': 'application/json; charset=utf-8',
