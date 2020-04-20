@@ -59,12 +59,13 @@ class LocationService {
   }
 
   static Future<void> saveLocation(LocationDto data) async {
-    final date = DateTime.now();
-    if (!Hive.isBoxOpen('locationBox')) {
+    try {
       Hive
       ..init('${data.dir}/db')
       ..registerAdapter(LocationEventAdapter());
-    }
+    } on HiveError {}
+
+    final date = DateTime.now();
 
     Box box = await Hive.openBox('locationBox');
     Box settingBox = await Hive.openBox('settings');

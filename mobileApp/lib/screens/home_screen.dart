@@ -5,6 +5,7 @@ import 'package:covid_tracker/services/local_storage_service.dart';
 import 'package:covid_tracker/services/location_service.dart';
 import 'package:covid_tracker/services/user_service.dart';
 import 'package:covid_tracker/utils/fade_transition.dart';
+import 'package:covid_tracker/utils/geocoordinates.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -16,6 +17,7 @@ import 'package:covid_tracker/screens/intro_screens.dart';
 import 'package:flutter_google_maps/flutter_google_maps.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:covid_tracker/services/exposure_service.dart';
+import 'package:location/location.dart' hide PermissionStatus;
 
 GlobalKey<GoogleMapStateBase> _key = GlobalKey<GoogleMapStateBase>();
 
@@ -36,6 +38,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   final LocationService _locationService = LocationService();
   final ExposureService _exposureService = ExposureService();
   final UserService _userService = locator<UserService>();
+  final LocalStorageService _localStorageService = locator<LocalStorageService>();
 
   String _mapsStyle;
   PermissionStatus _permission = PermissionStatus.unknown;
@@ -57,7 +60,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
     WidgetsBinding.instance.addObserver(this);
     Future.delayed(
-        Duration(milliseconds: 300), () => _checkLocationPermission());
+      Duration(milliseconds: 300),
+      () {
+          _addExposureMarkers(_exposureService.exposures);
+          _checkLocationPermission(initialRequest: true);
+        }
+    );
     _firebaseMessaging.configure(
       onMessage: (Map<String, dynamic> message) async {
         print("onMessage: $message");
@@ -88,6 +96,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       }
     });
     _checkExposureEvents();
+    _exposureService.exposuresStream.listen((e) {
+      _addExposureMarkers(_exposureService.exposures);
+    });
   }
 
   @override
@@ -108,7 +119,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       _exposureService.getContactLocations();
     }
   }
-  _checkLocationPermission() async {
+
+  _checkLocationPermission({bool initialRequest = false}) async {
     _permission = await LocationPermissions()
         .checkPermissionStatus(level: LocationPermissionLevel.locationAlways);
     if (_permission == PermissionStatus.unknown) {
@@ -116,6 +128,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         permissionLevel: LocationPermissionLevel.locationAlways,
       );
       if (_permission == PermissionStatus.granted) {
+        if (initialRequest) {
+          _showCurrentLocation();
+        }
         _locationService.startLocator();
       } else {
         _locationService.stopLocator();
@@ -123,6 +138,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       }
     } else if (_permission == PermissionStatus.granted) {
       _locationService.startLocator();
+      if (initialRequest) {
+        _showCurrentLocation();
+      }
     } else {
       _locationService.stopLocator();
       _alertLocationAccessNeeded();
@@ -130,17 +148,17 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     setState(() {});
   }
 
-  void _addExposureMarkers(List<ExposureEvent> exposures) async {
-    // AARON NOTES
-    // Read markers from database
-    // I's want this to be called on startup, have bound it to the ListTile for easy debug.
-    // Opening a second box causes everything to break
-    Box box = await Hive.openBox('locationBox');
+  _showCurrentLocation() async {
+    LocationData locationData = await Location().getLocation();
+    GoogleMap.of(_key).moveCamera(
+      getBoundsOfDistance(locationData.latitude, locationData.longitude, 500)
+    );
+  }
 
-    // var exposures =  _localStorageService.exposuresBox.keys;
+  void _addExposureMarkers(List<ExposureEvent> exposures) async {
     GoogleMap.of(_key).clearMarkers();
     exposures.forEach((exposure) {
-      LocationEvent locationDetails = box.get(exposure.recordId);
+      LocationEvent locationDetails = _localStorageService.locationsBox.get(exposure.recordId);
       double lat = locationDetails.latitude;
       double lng = locationDetails.longitude;
       bool dimissed = exposure.dismissed;
@@ -154,11 +172,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         },
       );
     });
-
-
   }
 
   _showExposureAlert(ExposureEvent exposureEvent) {
+    LocationEvent location = _localStorageService.locationsBox.get(exposureEvent.recordId);
+    GoogleMap.of(_key).moveCamera(getBoundsOfDistance(location.latitude, location.longitude, 150));
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -249,6 +267,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               textStyle: TextStyle(fontSize: 40, color: Colors.green[700])),
         ),
         backgroundColor: Colors.white,
+        centerTitle: true,
         actions: <Widget>[
           IconButton(
             icon: Icon(Icons.info_outline, color: Colors.grey),
@@ -287,9 +306,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               child: ValueListenableBuilder<Box>(
                 valueListenable: _exposureService.exposureValueListenable,
                 builder: (context, box, child) {
-                  print(_exposureService.exposures.first.timeSpent);
                   List<ExposureEvent> exposures = _exposureService.exposures;
-                  _addExposureMarkers(exposures); // Move into stream listener from _exposureService;
                   if (exposures.any((e) => !e.dismissed)) {
                     return ListTile(
                       isThreeLine: true,

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:covid_tracker/model/exposure_event.dart';
@@ -6,6 +7,7 @@ import 'package:covid_tracker/locator.dart';
 import 'package:covid_tracker/services/local_storage_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:stream_transform/stream_transform.dart';
 
 const USER_ID_KEY = 'id';
 
@@ -14,9 +16,13 @@ class ExposureService {
   final ApiClient _apiClient = locator<ApiClient>();
   final LocalStorageService _localStorageService =
       locator<LocalStorageService>();
+
+  StreamController<bool> _stateStreamController = StreamController();
+  Stream get loadingStateStream => _stateStreamController.stream;
+
   String get userId =>
       _localStorageService.settingsBox.get(USER_ID_KEY, defaultValue: null);
-  Stream get exposuresBox => _localStorageService.exposuresBox.watch();
+  Stream get exposuresStream => _localStorageService.exposuresBox.watch().debounce(const Duration(milliseconds: 300));
   ValueListenable get exposureValueListenable => _localStorageService.exposuresBox.listenable();
 
   // Maybe we should cache sorted exposures
@@ -24,6 +30,10 @@ class ExposureService {
     List<ExposureEvent> events = _localStorageService.exposuresBox.values.toList().cast<ExposureEvent>();
     events.sort((a,b) => b.timeSpent.compareTo(a.timeSpent));
     return events;
+  }
+
+  dispose() {
+    _stateStreamController.close();
   }
   // AARON NOTES:
   // This should be called on app open and there should be some indication on the app
@@ -36,6 +46,7 @@ class ExposureService {
     Map params = {'user_id': 51};
 
     try {
+      _stateStreamController.sink.add(true);
       var data = await _apiClient.post(
         'getContactLocations',
         {'content': 'empty'},
@@ -44,8 +55,10 @@ class ExposureService {
 
       List<ExposureEvent> events = await compute(_parseExposureData, data as List);
       _storeExposureEvents(events);
+      _stateStreamController.sink.add(false);
     } catch (e) {
       print(e);
+      _stateStreamController.sink.add(false);
     }
   }
 
