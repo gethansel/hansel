@@ -1,8 +1,9 @@
 import 'package:hive/hive.dart';
+import 'package:intl/intl.dart';
 
 part 'exposure_event.g.dart';
 
-@HiveType(typeId: 0)
+@HiveType(typeId: 1)
 class ExposureEvent extends HiveObject {
   @HiveField(0)
   final int recordId;
@@ -12,11 +13,14 @@ class ExposureEvent extends HiveObject {
   final DateTime endTime;
   @HiveField(3)
   bool dismissed;
+  @HiveField(4)
+  final String hashLoc;
 
   ExposureEvent({
     this.recordId,
     this.startTime,
     this.endTime,
+    this.hashLoc,
     this.dismissed = false
   });
 
@@ -25,9 +29,25 @@ class ExposureEvent extends HiveObject {
       recordId: int.parse(json['record_id']),
       startTime: DateTime.parse(json['start_time']),
       endTime: DateTime.parse(json['end_time']),
+      hashLoc: json['hash_loc'],
       dismissed: false,
     );
   }
+
+  ExposureEvent copyWithUpdate(ExposureEvent event) {
+    return ExposureEvent(
+      recordId: recordId,
+      startTime: event.startTime ?? startTime,
+      endTime: event.endTime ?? endTime,
+      hashLoc: event.hashLoc ?? hashLoc,
+      dismissed: dismissed,
+    );
+  }
+
+  Duration get timeSpent => endTime.difference(startTime);
+
+  String get formattedStartDate => DateFormat('MMM dd, yyyy').format(startTime);
+  String get formattedStartTime => DateFormat('HH:mm a').format(startTime);
 
   @override
   String toString() {

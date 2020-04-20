@@ -8,7 +8,7 @@ part of 'exposure_event.dart';
 
 class ExposureEventAdapter extends TypeAdapter<ExposureEvent> {
   @override
-  final typeId = 0;
+  final typeId = 1;
 
   @override
   ExposureEvent read(BinaryReader reader) {
@@ -20,6 +20,7 @@ class ExposureEventAdapter extends TypeAdapter<ExposureEvent> {
       recordId: fields[0] as int,
       startTime: fields[1] as DateTime,
       endTime: fields[2] as DateTime,
+      hashLoc: fields[4] as String,
       dismissed: fields[3] as bool,
     );
   }
@@ -27,7 +28,7 @@ class ExposureEventAdapter extends TypeAdapter<ExposureEvent> {
   @override
   void write(BinaryWriter writer, ExposureEvent obj) {
     writer
-      ..writeByte(4)
+      ..writeByte(5)
       ..writeByte(0)
       ..write(obj.recordId)
       ..writeByte(1)
@@ -35,6 +36,8 @@ class ExposureEventAdapter extends TypeAdapter<ExposureEvent> {
       ..writeByte(2)
       ..write(obj.endTime)
       ..writeByte(3)
-      ..write(obj.dismissed);
+      ..write(obj.dismissed)
+      ..writeByte(4)
+      ..write(obj.hashLoc);
   }
 }

@@ -1,4 +1,6 @@
 import 'package:covid_tracker/locator.dart';
+import 'package:covid_tracker/model/exposure_event.dart';
+import 'package:covid_tracker/model/location_event.dart';
 import 'package:covid_tracker/services/local_storage_service.dart';
 import 'package:covid_tracker/services/location_service.dart';
 import 'package:covid_tracker/services/user_service.dart';
@@ -33,7 +35,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   final LocationPermissions _locationPermissions = LocationPermissions();
   final LocationService _locationService = LocationService();
   final ExposureService _exposureService = ExposureService();
-  final LocalStorageService _localStorageService = locator<LocalStorageService>();
   final UserService _userService = locator<UserService>();
 
   String _mapsStyle;
@@ -77,10 +78,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       print("Settings registered: $settings");
     });
 
-    _firebaseMessaging.getToken().then((String token) {
+    _firebaseMessaging.getToken().then((String token) async {
       assert(token != null);
-      _userService.updateUserToken(token);
+      try {
+        await _userService.updateUserToken(token);
+        _checkExposureEvents();
+      } catch (e) {
+        print('update token error: $e');
+      }
     });
+    _checkExposureEvents();
   }
 
   @override
@@ -88,6 +95,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (state == AppLifecycleState.resumed &&
         _currentAppstate != AppLifecycleState.resumed) {
       _checkLocationPermission();
+      _checkExposureEvents();
     }
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.resumed) {
@@ -95,6 +103,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
   }
 
+  _checkExposureEvents() async {
+    if (_userService.userId != null) {
+      _exposureService.getContactLocations();
+    }
+  }
   _checkLocationPermission() async {
     _permission = await LocationPermissions()
         .checkPermissionStatus(level: LocationPermissionLevel.locationAlways);
@@ -117,34 +130,83 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     setState(() {});
   }
 
-  void _addExposureMarkers() async {
+  void _addExposureMarkers(List<ExposureEvent> exposures) async {
     // AARON NOTES
     // Read markers from database
     // I's want this to be called on startup, have bound it to the ListTile for easy debug.
     // Opening a second box causes everything to break
-    // Box box = await Hive.openBox('locationBox');
-    var exposures =  _localStorageService.exposuresBox.keys;
-    exposures.forEach((exposure) async{
-      var exposureDetails = await _localStorageService.exposuresBox.get(exposure);
-      print(exposureDetails);
-      int recordId = exposureDetails.recordId;
-      print(recordId.toString());
-      // var locationDetails = await box.get(recordId);
-      // print(locationDetails);
-      // double lat = locationDetails.latitude;
-      // double lng = locationDetails.longitude;
-      // DateTime start = locationDetails.start;
-      // DateTime end = locationDetails.end;
-      bool dimissed = exposureDetails.dismissed;
+    Box box = await Hive.openBox('locationBox');
+
+    // var exposures =  _localStorageService.exposuresBox.keys;
+    GoogleMap.of(_key).clearMarkers();
+    exposures.forEach((exposure) {
+      LocationEvent locationDetails = box.get(exposure.recordId);
+      double lat = locationDetails.latitude;
+      double lng = locationDetails.longitude;
+      bool dimissed = exposure.dismissed;
       // AARON NOTES
       // color the marker according to the spec.
-      // GoogleMap.of(_key).addMarker(
-      //   // GeoCoord(lat, lng),
-      //   GeoCoord(lat, lng),
-      //   info: recordId.toString()
-      // );
-
+      GoogleMap.of(_key).addMarker(
+        GeoCoord(lat, lng),
+        icon: dimissed ? 'assets/exposureMarkerDismissed' : 'assets/exposureMarker',
+        onTap: () {
+          _showExposureAlert(exposure);
+        },
+      );
     });
+
+
+  }
+
+  _showExposureAlert(ExposureEvent exposureEvent) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text('Date: ${exposureEvent.formattedStartDate}'),
+              Text('Time: ${exposureEvent.formattedStartTime}'),
+              Text('Duration: ${exposureEvent.timeSpent.inMinutes} min'),
+              SizedBox(height: 10),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: <Widget>[
+                  RaisedButton(
+                    onPressed: () {
+                      exposureEvent.dismissed = true;
+                      exposureEvent.save();
+                      Navigator.of(context).pop();
+                    },
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10.0),
+                      side: BorderSide(color: Colors.black12)
+                    ),
+                    textColor: Colors.black,
+                    color: Colors.white,
+                    elevation: 0,
+                    child: Text('Dismiss'),
+                  ),
+                  RaisedButton(
+                    onPressed: () {},
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10.0),
+                      side: BorderSide(color: Colors.black12)
+                    ),
+                    textColor: Colors.black,
+                    color: Colors.white,
+                    elevation: 0,
+                    child: Text('Get Tested'),
+                  ),
+                ],
+              )
+            ],
+          ),
+        );
+      }
+    );
   }
 
   Future<void> _alertLocationAccessNeeded() async {
@@ -222,17 +284,32 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             right: 10,
             child: Card(
               elevation: 5,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: <Widget>[
-                  ListTile(
+              child: ValueListenableBuilder<Box>(
+                valueListenable: _exposureService.exposureValueListenable,
+                builder: (context, box, child) {
+                  print(_exposureService.exposures.first.timeSpent);
+                  List<ExposureEvent> exposures = _exposureService.exposures;
+                  _addExposureMarkers(exposures); // Move into stream listener from _exposureService;
+                  if (exposures.any((e) => !e.dismissed)) {
+                    return ListTile(
+                      isThreeLine: true,
+                      leading: Icon(Icons.person,
+                          size: 50, color: Colors.red),
+                      title: Text('Positive COVID-19 Exposure'),
+                      subtitle: Text('Self isolate + Get Tested\nTap to review & get tested'),
+                      onTap: () {
+                        _showExposureAlert(exposures.firstWhere((e) => !e.dismissed));
+                      },
+                    );
+                  }
+                  return ListTile(
                     leading: Icon(Icons.home,
                         size: 50, color: Color.fromARGB(255, 56, 142, 60)),
                     title: Text('Local Guidance'),
                     subtitle: Text('Stay at home. Social Distance.'),
-                    onTap: (){_addExposureMarkers();},
-                  ),
-                ],
+                    onTap: (){},
+                  );
+                }
               ),
             ),
           ),
@@ -249,7 +326,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         // AARON NOTES
                         // I've bound this to Report Case for easy debugging.
                         // This should be called in the background on startup.
-                        _exposureService.getContactLocations();
                         Navigator.push(
                           context,
                           MaterialPageRoute(
