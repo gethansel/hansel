@@ -1,7 +1,10 @@
 import 'package:covid_tracker/locator.dart';
 import 'package:covid_tracker/model/exposure_event.dart';
 import 'package:covid_tracker/model/location_event.dart';
+import 'package:covid_tracker/screens/home/map_view.dart';
+import 'package:covid_tracker/screens/home/top_banner.dart';
 import 'package:covid_tracker/services/local_storage_service.dart';
+import 'package:covid_tracker/services/location_permission_service.dart';
 import 'package:covid_tracker/services/location_service.dart';
 import 'package:covid_tracker/services/user_service.dart';
 import 'package:covid_tracker/utils/fade_transition.dart';
@@ -10,7 +13,6 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:hive/hive.dart';
 import 'package:location_permissions/location_permissions.dart';
 import 'package:covid_tracker/screens/reportCovidScreen.dart';
 import 'package:covid_tracker/screens/intro_screens.dart';
@@ -34,17 +36,16 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   final FirebaseMessaging _firebaseMessaging = FirebaseMessaging();
-  final LocationPermissions _locationPermissions = LocationPermissions();
   final LocationService _locationService = LocationService();
-  final ExposureService _exposureService = ExposureService();
+  final ExposureService _exposureService = locator<ExposureService>();
   final UserService _userService = locator<UserService>();
   final LocalStorageService _localStorageService = locator<LocalStorageService>();
+  final LocationPermissionService _locationPermissionService = locator<LocationPermissionService>();
 
-  String _mapsStyle;
-  PermissionStatus _permission = PermissionStatus.unknown;
   AppLifecycleState _currentAppstate = AppLifecycleState.resumed;
 
   void dispose() {
+    _locationPermissionService.closeStream();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -53,17 +54,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   void initState() {
     super.initState();
 
-    rootBundle.loadString('assets/styles/maps.json').then((string) {
-      _mapsStyle = string;
-      setState(() {});
-    });
-
     WidgetsBinding.instance.addObserver(this);
     Future.delayed(
       Duration(milliseconds: 300),
-      () {
+      () async {
+          bool allowed = await _locationPermissionService.checkPermission();
+          if (allowed) {
+            _showCurrentLocation();
+          }
           _addExposureMarkers(_exposureService.exposures);
-          _checkLocationPermission(initialRequest: true);
         }
     );
     _firebaseMessaging.configure(
@@ -99,13 +98,22 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     _exposureService.exposuresStream.listen((e) {
       _addExposureMarkers(_exposureService.exposures);
     });
+
+    _locationPermissionService.onPermissionChanged.listen((data) {
+      if (data) {
+         _locationService.startLocator();
+      } else {
+        _locationService.stopLocator();
+        _alertLocationAccessNeeded();
+      }
+    });
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) async {
     if (state == AppLifecycleState.resumed &&
         _currentAppstate != AppLifecycleState.resumed) {
-      _checkLocationPermission();
+      _locationPermissionService.checkPermission();
       _checkExposureEvents();
     }
     if (state == AppLifecycleState.paused ||
@@ -118,34 +126,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (_userService.userId != null) {
       _exposureService.getContactLocations();
     }
-  }
-
-  _checkLocationPermission({bool initialRequest = false}) async {
-    _permission = await LocationPermissions()
-        .checkPermissionStatus(level: LocationPermissionLevel.locationAlways);
-    if (_permission == PermissionStatus.unknown) {
-      _permission = await _locationPermissions.requestPermissions(
-        permissionLevel: LocationPermissionLevel.locationAlways,
-      );
-      if (_permission == PermissionStatus.granted) {
-        if (initialRequest) {
-          _showCurrentLocation();
-        }
-        _locationService.startLocator();
-      } else {
-        _locationService.stopLocator();
-        _alertLocationAccessNeeded();
-      }
-    } else if (_permission == PermissionStatus.granted) {
-      _locationService.startLocator();
-      if (initialRequest) {
-        _showCurrentLocation();
-      }
-    } else {
-      _locationService.stopLocator();
-      _alertLocationAccessNeeded();
-    }
-    setState(() {});
   }
 
   _showCurrentLocation() async {
@@ -195,7 +175,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   RaisedButton(
                     onPressed: () {
                       exposureEvent.dismissed = true;
-                      exposureEvent.save();
+                      _localStorageService.exposuresBox.put(exposureEvent.recordId.toString(), exposureEvent);
                       Navigator.of(context).pop();
                     },
                     shape: RoundedRectangleBorder(
@@ -279,55 +259,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       body: Stack(
         alignment: Alignment.topCenter,
         children: <Widget>[
-          if (_permission != PermissionStatus.granted) ...[
-            SizedBox(height: 30),
-            Text(
-                'We need access to your location so we can warn you of possible exposure. Your location will never leave your device.'),
-            RaisedButton(
-              onPressed: () => LocationPermissions().openAppSettings(),
-              child: Text('Open settings', style: TextStyle(fontSize: 24)),
-            ),
-            SizedBox(height: 20),
-          ],
-          GoogleMap(
-            key: _key,
-            mapStyle: _mapsStyle,
-            mobilePreferences: MobileMapPreferences(
-                myLocationEnabled: true,
-                myLocationButtonEnabled: true,
-                padding: EdgeInsets.only(bottom: 40)),
-          ),
+          MapView(mapkey: _key),
           Positioned(
             top: 10,
             left: 10,
             right: 10,
-            child: Card(
-              elevation: 5,
-              child: ValueListenableBuilder<Box>(
-                valueListenable: _exposureService.exposureValueListenable,
-                builder: (context, box, child) {
-                  List<ExposureEvent> exposures = _exposureService.exposures;
-                  if (exposures.any((e) => !e.dismissed)) {
-                    return ListTile(
-                      isThreeLine: true,
-                      leading: Icon(Icons.person,
-                          size: 50, color: Colors.red),
-                      title: Text('Positive COVID-19 Exposure'),
-                      subtitle: Text('Self isolate + Get Tested\nTap to review & get tested'),
-                      onTap: () {
-                        _showExposureAlert(exposures.firstWhere((e) => !e.dismissed));
-                      },
-                    );
-                  }
-                  return ListTile(
-                    leading: Icon(Icons.home,
-                        size: 50, color: Color.fromARGB(255, 56, 142, 60)),
-                    title: Text('Local Guidance'),
-                    subtitle: Text('Stay at home. Social Distance.'),
-                    onTap: (){},
-                  );
-                }
-              ),
+            child: TopBanner(
+              onExposureTap: (e) => _showExposureAlert(e),
+              onTap: () {},
             ),
           ),
           Positioned(
@@ -380,7 +319,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                               if (isTracing) {
                                 _locationService.stopLocator();
                               } else {
-                                _checkLocationPermission();
+                                _locationPermissionService.checkPermission();
                               }
                             },
                             shape: RoundedRectangleBorder(
