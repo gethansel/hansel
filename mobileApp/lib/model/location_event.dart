@@ -1,7 +1,11 @@
+import 'dart:typed_data';
+import 'dart:convert';
+
 import 'package:hive/hive.dart';
 import 'dart:convert' show utf8;
 import 'package:crypto/crypto.dart';
-
+import 'package:encryptions/encryptions.dart';
+import 'package:convert/convert.dart';
 part 'location_event.g.dart';
 
 @HiveType(typeId: 0)
@@ -28,15 +32,17 @@ class LocationEvent extends HiveObject {
     this.endTime
   });
 
-  String toPayloadString() {
+  Future<String> toPayloadString() async{
     int precision = 4;
     String long = longitude.toStringAsFixed(precision);
     String lat = latitude.toStringAsFixed(precision);
     String alt = altitude.toStringAsFixed(precision);
 
     var bytes = utf8.encode('$long$lat$alt');
-
-    var locationHash = md5.convert(bytes);
+    Argon2 argon2 = Argon2();
+    Uint8List salt = utf8.encode('somesalt');
+    Uint8List hash = await argon2.argon2i(bytes, salt);
+    String locationHash = hex.encode(hash);
     return '$key,$startTime,$endTime,$locationHash';
   }
 

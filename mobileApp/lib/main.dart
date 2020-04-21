@@ -1,3 +1,4 @@
+import 'package:background_locator/background_locator.dart';
 import 'package:covid_tracker/constant/keys.dart';
 import 'package:covid_tracker/locator.dart';
 import 'package:covid_tracker/screens/home/home_screen.dart';
@@ -12,6 +13,7 @@ import 'package:flutter_google_maps/flutter_google_maps.dart';
 void main() async {
   GoogleMap.init('<GOOGLE_MAP_API>');
   WidgetsFlutterBinding.ensureInitialized();
+  await BackgroundLocator.initialize();
   await setupLocator();
   runApp(MyApp());
 }
