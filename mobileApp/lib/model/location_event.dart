@@ -41,7 +41,7 @@ class LocationEvent extends HiveObject {
     var bytes = utf8.encode('$long$lat$alt');
     Argon2 argon2 = Argon2();
     Uint8List salt = utf8.encode('somesalt');
-    Uint8List hash = await argon2.argon2i(bytes, salt);
+    Uint8List hash = await argon2.argon2id(bytes, salt);
     String locationHash = hex.encode(hash);
     return '$key,$startTime,$endTime,$locationHash';
   }

@@ -29,11 +29,12 @@ class TopBanner extends StatelessWidget {
           List<ExposureEvent> exposures = _exposureService.exposures;
           if (exposures.any((e) => !e.dismissed)) {
             return ListTile(
-              isThreeLine: true,
+              isThreeLine: false,
+              contentPadding: EdgeInsets.symmetric(vertical:10,horizontal:15),
               leading: Icon(Icons.person,
                   size: 50, color: Colors.red),
-              title: Text('Positive COVID-19 Exposure'),
-              subtitle: Text('Self isolate + Get Tested\nTap to review & get tested'),
+              title: Text('Possible COVID-19 Exposure'),
+              subtitle: Text('Self Isolate + Get Tested\nTap for more Info'),
               onTap: () => onExposureTap(exposures.firstWhere((e) => !e.dismissed)),
             );
           }
