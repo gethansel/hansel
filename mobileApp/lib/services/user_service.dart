@@ -12,11 +12,11 @@ class UserService {
   final ApiClient _apiClient = locator<ApiClient>();
   String get userId => _localStorageService.settingsBox.get(USER_ID_KEY, defaultValue: null);
 
-  updateUserToken(String token) {
-    _createUser(token, existingUserId:userId);
+  Future updateUserToken(String token) async {
+    return _createUser(token, existingUserId:userId);
   }
 
-  _createUser(String fcmToken, { String existingUserId }) async {
+  Future _createUser(String fcmToken, { String existingUserId }) async {
     if (fcmToken == _localStorageService.settingsBox.get(FCM_TOKEN, defaultValue: '') &&
     existingUserId != null) {
       //FCM_TOKEN not changed
@@ -33,8 +33,10 @@ class UserService {
     try {
       var data = await _apiClient.post('createUser', {'content': 'empty'}, queryParameters: Map<String, dynamic>.from(params));
       print(data);
-      _localStorageService.settingsBox.put(USER_ID_KEY, '$data');
-      _localStorageService.settingsBox.put(FCM_TOKEN, fcmToken);
+      return Future.wait([
+        _localStorageService.settingsBox.put(USER_ID_KEY, '$data'),
+        _localStorageService.settingsBox.put(FCM_TOKEN, fcmToken),
+      ]);
     } catch (e) {
       print(e);
     }
