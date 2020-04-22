@@ -147,7 +147,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       GoogleMap.of(_key).addMarker(
         GeoCoord(lat, lng),
         icon: dimissed ? 'assets/exposureMarkerDismissed' : 'assets/exposureMarker',
-
         onTap: () {
           _showExposureAlert(exposure);
         },
