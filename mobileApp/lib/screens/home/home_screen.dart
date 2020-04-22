@@ -147,6 +147,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       GoogleMap.of(_key).addMarker(
         GeoCoord(lat, lng),
         icon: dimissed ? 'assets/exposureMarkerDismissed' : 'assets/exposureMarker',
+
         onTap: () {
           _showExposureAlert(exposure);
         },
@@ -165,16 +166,44 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              Text('Date: ${exposureEvent.formattedStartDate}'),
-              Text('Time: ${exposureEvent.formattedStartTime}'),
-              Text('Duration: ${exposureEvent.timeSpent.inMinutes} min'),
+              Text('Possible Exposure',
+              style:TextStyle(fontSize: 20)
+              ),
+              SizedBox(height: 20),
+              Text('You might have been exposed to someone who has COVID-19.\nYou can view the details of your interaction below.',
+              style:TextStyle(fontSize: 12, color: Colors.black54)
+              ),
+              SizedBox(height: 10),
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Column(
+                  children: <Widget>[Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: <Widget>[
+                    Text('Date: '),Text('${exposureEvent.formattedStartDate}',textAlign: TextAlign.right),
+                  ],
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: <Widget>[
+                    Text('Time: '),Text('${exposureEvent.formattedStartTime}',textAlign: TextAlign.right),
+                  ],
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: <Widget>[
+                    Text('Duration: '),Text('${exposureEvent.timeSpent.inMinutes} min',textAlign: TextAlign.right),
+                  ],
+                ),]
+                ),
+              ),
               SizedBox(height: 10),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: <Widget>[
                   RaisedButton(
                     onPressed: () {
-                      exposureEvent.dismissed = true;
+                      exposureEvent.dismissed = !exposureEvent.dismissed;
                       _localStorageService.exposuresBox.put(exposureEvent.recordId.toString(), exposureEvent);
                       Navigator.of(context).pop();
                     },
@@ -185,7 +214,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     textColor: Colors.black,
                     color: Colors.white,
                     elevation: 0,
-                    child: Text('Dismiss'),
+                    child: exposureEvent.dismissed ? Text('Reactivate') : Text('Dismiss'),
                   ),
                   RaisedButton(
                     onPressed: () {},
