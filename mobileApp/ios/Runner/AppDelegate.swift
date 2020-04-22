@@ -3,15 +3,17 @@ import Flutter
 import background_locator
 import GoogleMaps
 import encryptions
-
-//func registerPlugins(registry: FlutterPluginRegistry) -> () {
-//    GeneratedPluginRegistrant.register(with: registry)
-//}
+import path_provider
 
 private func registerPlugins(registry: FlutterPluginRegistry) {
-    GeneratedPluginRegistrant.register(with: registry)
     if (!registry.hasPlugin("BackgroundLocatorPlugin")) {
        BackgroundLocatorPlugin.register(with: registry.registrar(forPlugin: "BackgroundLocatorPlugin"))
+    }
+    if (!registry.hasPlugin("EncryptionsPlugin")) {
+        EncryptionsPlugin.register(with: registry.registrar(forPlugin: "EncryptionsPlugin"))
+    }
+    if (!registry.hasPlugin("FLTPathProviderPlugin")) {
+        FLTPathProviderPlugin.register(with: registry.registrar(forPlugin: "FLTPathProviderPlugin"))
     }
 }
 
