@@ -156,6 +156,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   _showExposureAlert(ExposureEvent exposureEvent) {
+    if (exposureEvent == null) {
+      return;
+    }
+
     LocationEvent location = _localStorageService.locationsBox.get(exposureEvent.recordId);
     GoogleMap.of(_key).moveCamera(getBoundsOfDistance(location.latitude, location.longitude, 150, center: false));
     showDialog(
@@ -206,10 +210,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: <Widget>[
                   RaisedButton(
-                    onPressed: () {
+                    onPressed: () async {
                       exposureEvent.dismissed = !exposureEvent.dismissed;
-                      _localStorageService.exposuresBox.put(exposureEvent.recordId.toString(), exposureEvent);
+                      await _localStorageService.exposuresBox.put(exposureEvent.recordId.toString(), exposureEvent);
                       Navigator.of(context).pop();
+                      _showExposureAlert(_exposureService.nextActiveExposure);
                     },
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10.0),

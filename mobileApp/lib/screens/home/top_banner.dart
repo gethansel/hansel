@@ -34,7 +34,7 @@ class TopBanner extends StatelessWidget {
                   size: 50, color: Colors.red),
               title: Text('Positive COVID-19 Exposure'),
               subtitle: Text('Self isolate + Get Tested\nTap to review & get tested'),
-              onTap: () => onExposureTap(exposures.firstWhere((e) => !e.dismissed)),
+              onTap: () => onExposureTap(_exposureService.nextActiveExposure),
             );
           }
           return ListTile(
