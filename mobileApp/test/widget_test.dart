@@ -12,6 +12,6 @@ import 'package:covid_tracker/main.dart';
 
 void main() {
   testWidgets('Widget Tests', (WidgetTester tester) async {
-    
+    await tester.pumpWidget();
   });
 }
