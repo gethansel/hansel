@@ -137,6 +137,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   void _addExposureMarkers(List<ExposureEvent> exposures) async {
     GoogleMap.of(_key).clearMarkers();
+
     exposures.forEach((exposure) {
       LocationEvent locationDetails = _localStorageService.locationsBox.get(exposure.recordId);
       double lat = locationDetails.latitude;
@@ -206,7 +207,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 children: <Widget>[
                   RaisedButton(
                     onPressed: () {
-                      exposureEvent.dismissed = true;
+                      exposureEvent.dismissed = !exposureEvent.dismissed;
                       _localStorageService.exposuresBox.put(exposureEvent.recordId.toString(), exposureEvent);
                       Navigator.of(context).pop();
                     },
@@ -217,7 +218,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     textColor: Colors.black,
                     color: Colors.white,
                     elevation: 0,
-                    child: Text('Dismiss'),
+                    child: exposureEvent.dismissed ? Text('Reactivate') : Text('Dismiss'),
                   ),
                   RaisedButton(
                     onPressed: () {
@@ -243,7 +244,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   _launchURL() async {
-    const url = 'https://gethansel.org';
+    const url = 'https://portal.ct.gov/Coronavirus';
     if (await canLaunch(url)) {
       await launch(url);
     }

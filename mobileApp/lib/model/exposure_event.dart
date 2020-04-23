@@ -46,8 +46,8 @@ class ExposureEvent extends HiveObject {
 
   Duration get timeSpent => endTime.difference(startTime);
 
-  String get formattedStartDate => DateFormat('MMM dd, yyyy').format(startTime);
-  String get formattedStartTime => DateFormat('HH:mm a').format(startTime);
+  String get formattedStartDate => DateFormat('EEE, MMM dd, yyyy').format(startTime);
+  String get formattedStartTime => DateFormat('h:mm a').format(startTime);
 
   @override
   String toString() {
