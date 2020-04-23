@@ -130,8 +130,8 @@ class LocationService {
       callback,
       androidNotificationCallback: notificationCallback,
       settings: LocationSettings(
-        notificationTitle: "Start Location",
-        notificationMsg: "Track location in background exapmle",
+        notificationTitle: "Hansel",
+        notificationMsg: "Hansel is tracking your Location",
         wakeLockTime: 20,
         distanceFilter: 10,
         autoStop: false,
