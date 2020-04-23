@@ -6,12 +6,8 @@ void main() {
   group('Location Service', () {
     test('LocationService is running', () {
       final locator = LocationService();
-      locator.initPlatformState();
+      locator.startLocator();
       expect(locator.isRunning, true);
     });
-
-    // test('LocationServices saves Location', (){
-    //   LocationService.saveLocation(LocationDto );
-    // });
   });
 }
