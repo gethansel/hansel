@@ -21,6 +21,7 @@ jobs:
           flutter-version: '1.12.14'
           channel: 'dev'
      - run: cd mobileApp
+     - run: ls
      - run: flutter pub get
      - run: flutter analyze
      - run: flutter test --coverage
