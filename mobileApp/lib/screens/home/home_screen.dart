@@ -321,14 +321,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 Expanded(
                   child: RaisedButton(
                       onPressed: () {
-                        // AARON NOTES
-                        // I've bound this to Report Case for easy debugging.
-                        // This should be called in the background on startup.
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => ReportCovidDiagnosis()),
-                        );
+                        Navigator.of(context).push(ReportCovidDiagnosis.route());
                       },
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10.0),

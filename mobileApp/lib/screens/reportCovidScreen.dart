@@ -8,6 +8,12 @@ import 'package:covid_tracker/services/local_storage_service.dart';
 const USER_ID_KEY = 'id';
 
 class ReportCovidDiagnosis extends StatelessWidget {
+  static Route<dynamic> route() {
+    return MaterialPageRoute(
+      builder: (context) => ReportCovidDiagnosis(),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
