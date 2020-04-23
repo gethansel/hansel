@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:isolate';
 import 'package:background_locator/background_locator.dart';
 import 'package:background_locator/location_dto.dart';
@@ -6,6 +7,7 @@ import 'package:background_locator/location_settings.dart';
 import 'package:covid_tracker/model/location_event.dart';
 import 'package:covid_tracker/services/api_client.dart';
 import 'package:hive/hive.dart';
+import 'package:path_provider/path_provider.dart';
 
 class LocationService {
   final ReceivePort port = ReceivePort();
@@ -40,7 +42,6 @@ class LocationService {
   }
 
   Future<void> initPlatformState() async {
-    await BackgroundLocator.initialize();
     isRunning = await BackgroundLocator.isRegisterLocationUpdate();
     _stateStreamController.sink.add(isRunning);
   }
@@ -59,12 +60,15 @@ class LocationService {
   }
 
   static Future<void> saveLocation(LocationDto data) async {
-    final date = DateTime.now();
-    if (!Hive.isBoxOpen('locationBox')) {
+    try {
+      Directory dir = await getApplicationDocumentsDirectory();
       Hive
-      ..init('${data.dir}/db')
+      ..init('${dir.path}/db')
       ..registerAdapter(LocationEventAdapter());
-    }
+    } on HiveError {}
+
+
+    final date = DateTime.now();
 
     Box box = await Hive.openBox('locationBox');
     Box settingBox = await Hive.openBox('settings');
@@ -102,10 +106,11 @@ class LocationService {
     // Setting to 30 seconds now so we get more updates
     if (difference.inSeconds >= 30) {
       var payload = StringBuffer();
-      box.values.where((l) => l.startTime.isAfter(syncDate) && l.endTime != null)
-      ..forEach((l) {
-        payload.writeln(l.toPayloadString());
-      });
+      List locations = box.values.where((l) => l.startTime.isAfter(syncDate) && l.endTime != null).toList();
+      for (LocationEvent l in locations) {
+        String payloadString = await l.toPayloadString();
+        payload.writeln(payloadString);
+      }
       if (payload.isEmpty) {
         // There are no locations for upload.
         return;
@@ -125,8 +130,8 @@ class LocationService {
       callback,
       androidNotificationCallback: notificationCallback,
       settings: LocationSettings(
-        notificationTitle: "Start Location",
-        notificationMsg: "Track location in background exapmle",
+        notificationTitle: "Hansel",
+        notificationMsg: "Hansel is tracking your Location",
         wakeLockTime: 20,
         distanceFilter: 10,
         autoStop: false,
