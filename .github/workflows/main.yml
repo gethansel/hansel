@@ -22,6 +22,7 @@ jobs:
        with:
           flutter-version: '1.12.14'
           channel: 'dev'
+     - run: ls
      - run: flutter pub get
      - run: flutter analyze
      - run: flutter test --coverage
