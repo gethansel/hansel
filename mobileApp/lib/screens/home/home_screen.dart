@@ -17,9 +17,9 @@ import 'package:location_permissions/location_permissions.dart';
 import 'package:covid_tracker/screens/reportCovidScreen.dart';
 import 'package:covid_tracker/screens/intro_screens.dart';
 import 'package:flutter_google_maps/flutter_google_maps.dart';
-import 'package:flutter/services.dart' show rootBundle;
 import 'package:covid_tracker/services/exposure_service.dart';
 import 'package:location/location.dart' hide PermissionStatus;
+import 'package:url_launcher/url_launcher.dart';
 
 GlobalKey<GoogleMapStateBase> _key = GlobalKey<GoogleMapStateBase>();
 
@@ -137,6 +137,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   void _addExposureMarkers(List<ExposureEvent> exposures) async {
     GoogleMap.of(_key).clearMarkers();
+
     exposures.forEach((exposure) {
       LocationEvent locationDetails = _localStorageService.locationsBox.get(exposure.recordId);
       double lat = locationDetails.latitude;
@@ -155,8 +156,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   _showExposureAlert(ExposureEvent exposureEvent) {
+    if (exposureEvent == null) {
+      return;
+    }
+
     LocationEvent location = _localStorageService.locationsBox.get(exposureEvent.recordId);
-    GoogleMap.of(_key).moveCamera(getBoundsOfDistance(location.latitude, location.longitude, 150));
+    GoogleMap.of(_key).moveCamera(getBoundsOfDistance(location.latitude, location.longitude, 150, center: false));
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -165,18 +170,51 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              Text('Date: ${exposureEvent.formattedStartDate}'),
-              Text('Time: ${exposureEvent.formattedStartTime}'),
-              Text('Duration: ${exposureEvent.timeSpent.inMinutes} min'),
+              Text('Possible Exposure', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w500)),
+              SizedBox(height: 10),
+              Text(
+                'You might have been exposed to someone who has COVID-19.\nYou can view the details of your interaction below.',
+                style: TextStyle(fontSize: 14, color: Colors.black54),
+              ),
+              SizedBox(height: 10),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                child: Column(
+                  children: <Widget>[
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: <Widget>[
+                        Text('Date:'),
+                        Text(exposureEvent.formattedStartDate),
+                      ],
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: <Widget>[
+                        Text('Time:'),
+                        Text(exposureEvent.formattedStartTime),
+                      ],
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: <Widget>[
+                        Text('Duration:'),
+                        Text('${exposureEvent.timeSpent.inMinutes} min'),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
               SizedBox(height: 10),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: <Widget>[
                   RaisedButton(
-                    onPressed: () {
-                      exposureEvent.dismissed = true;
-                      _localStorageService.exposuresBox.put(exposureEvent.recordId.toString(), exposureEvent);
+                    onPressed: () async {
+                      exposureEvent.dismissed = !exposureEvent.dismissed;
+                      await _localStorageService.exposuresBox.put(exposureEvent.recordId.toString(), exposureEvent);
                       Navigator.of(context).pop();
+                      _showExposureAlert(_exposureService.nextActiveExposure);
                     },
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10.0),
@@ -185,10 +223,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     textColor: Colors.black,
                     color: Colors.white,
                     elevation: 0,
-                    child: Text('Dismiss'),
+                    child: exposureEvent.dismissed ? Text('Reactivate') : Text('Dismiss'),
                   ),
                   RaisedButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      _launchURL();
+                    },
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10.0),
                       side: BorderSide(color: Colors.black12)
@@ -205,6 +246,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         );
       }
     );
+  }
+
+  _launchURL() async {
+    const url = 'https://portal.ct.gov/Coronavirus';
+    if (await canLaunch(url)) {
+      await launch(url);
+    }
   }
 
   Future<void> _alertLocationAccessNeeded() async {
@@ -279,14 +327,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 Expanded(
                   child: RaisedButton(
                       onPressed: () {
-                        // AARON NOTES
-                        // I've bound this to Report Case for easy debugging.
-                        // This should be called in the background on startup.
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => ReportCovidDiagnosis()),
-                        );
+                        Navigator.of(context).push(ReportCovidDiagnosis.route());
                       },
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10.0),

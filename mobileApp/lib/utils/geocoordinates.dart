@@ -10,7 +10,7 @@ const double MAXLON = 180;
 double toRad(double value) => (value * pi) / 180;
 double toDeg(double value) => (value * 180) / pi;
 
-GeoCoordBounds getBoundsOfDistance(double lat, double lng, double distance) {
+GeoCoordBounds getBoundsOfDistance(double lat, double lng, double distance, { bool center = true }) {
   double radLat = toRad(lat);
   double radLon = toRad(lng);
   double radDist = distance / earthRadius;
@@ -45,8 +45,14 @@ GeoCoordBounds getBoundsOfDistance(double lat, double lng, double distance) {
       minLon = minLonRad;
       maxLon = maxLonRad;
   }
+  if (center) {
+    return GeoCoordBounds(
+      northeast: GeoCoord(toDeg(maxLat), toDeg(maxLon)),
+      southwest: GeoCoord(toDeg(minLat), toDeg(minLon)),
+    );
+  }
   return GeoCoordBounds(
-    northeast: GeoCoord(toDeg(maxLat), toDeg(maxLon)),
+    northeast: GeoCoord(toDeg(maxLat + radDist * 3), toDeg(maxLon)),
     southwest: GeoCoord(toDeg(minLat), toDeg(minLon)),
   );
 }

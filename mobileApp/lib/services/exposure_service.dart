@@ -21,6 +21,7 @@ class ExposureService {
   Stream get exposuresStream => _localStorageService.exposuresBox.watch().debounce(const Duration(milliseconds: 300));
   ValueListenable get exposureValueListenable => _localStorageService.exposuresBox.listenable();
 
+  ExposureEvent get nextActiveExposure => exposures.firstWhere((e) => !e.dismissed, orElse: () => null);
   // Maybe we should cache sorted exposures
   List<ExposureEvent> get exposures {
     List<ExposureEvent> events = _localStorageService.exposuresBox.values.toList().cast<ExposureEvent>();

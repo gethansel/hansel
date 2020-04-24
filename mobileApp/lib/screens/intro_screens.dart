@@ -57,7 +57,11 @@ class _OnBoardingPageState extends State<OnBoardingPage> {
         ),
       ],
       onDone: () async {
-        await _localStorageService.settingsBox.put(Keys.introWasShown, true);
+        if (!_localStorageService.settingsBox.get(Keys.introWasShown, defaultValue: false)) {
+          await _localStorageService.settingsBox.put(Keys.introWasShown, true);
+        } else {
+          Navigator.of(context).pop();
+        }
       },
       // onSkip: () => _onIntroEnd(context), // You can override onSkip callback
       skipFlex: 0,
