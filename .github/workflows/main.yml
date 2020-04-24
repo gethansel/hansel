@@ -13,7 +13,7 @@ jobs:
   test:
    runs-on: macos-latest
    env:
-     working_directory:  ./mobileApp
+     working-directory: ./mobileApp
    steps:
      # The branch or tag ref that triggered the workflow will be checked out.
      - uses: actions/checkout@v1
@@ -24,8 +24,11 @@ jobs:
           channel: 'dev'
      - run: ls
      - run: flutter pub get
+       working-directory: ./mobileApp
      - run: flutter analyze
+       working-directory: ./mobileApp
      - run: flutter test --coverage
+       working-directory: ./mobileApp
   drive_ios:
     strategy:
       matrix:
